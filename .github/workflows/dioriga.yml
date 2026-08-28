@@ -12,7 +12,7 @@ name: dioriga-bridge-status
 
 on:
   schedule:
-    - cron: "*/3 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch: # manual "run now" button
 
 permissions: {}
