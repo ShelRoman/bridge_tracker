@@ -1,0 +1,46 @@
+# GitHub Actions workflow for dioriga_bridge_status.sh
+#
+# Managed by terraform (terraform/github/main.tf): synced into the
+# bridge_tracker repo as .github/workflows/dioriga.yml on terraform apply,
+# together with the script itself. Secrets TELEGRAM_BOT_TOKEN and
+# TELEGRAM_CHAT_ID are injected as github_actions_secret resources.
+#
+# Caveats of schedule: on the free tier — runs are best-effort (typically
+# 3-15 min late, occasionally skipped), 5 min is the minimum interval, and
+# GitHub auto-disables schedules after 60 days without repo activity.
+name: dioriga-bridge-status
+
+on:
+  schedule:
+    - cron: "*/3 * * * *"
+  workflow_dispatch: # manual "run now" button
+
+permissions: {}
+
+concurrency:
+  group: dioriga-bridge-status # never two checks at once
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      # Rolling state between runs: each run saves under a fresh key and the
+      # next run restores the most recent one via the prefix match.
+      - uses: actions/cache@v6
+        with:
+          path: .state
+          key: bridge-state-${{ github.run_id }}
+          restore-keys: |
+            bridge-state-
+
+      # The script installs tesseract + Greek data itself via apt-get.
+      - name: Check bridge status and post on change
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATE_FILE: .state/last_message
+          ONE_SHOT: "1"
+        run: bash snippets/bash/dioriga_bridge_status.sh
