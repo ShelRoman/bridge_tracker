@@ -1,0 +1,23 @@
+name: debug-telegram
+on: workflow_dispatch
+permissions: {}
+jobs:
+  debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Diagnose telegram credentials
+        env:
+          T: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          C: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          echo "token length: ${#T}"
+          [[ "$T" =~ ^[0-9]+:[A-Za-z0-9_-]+$ ]] && echo "token format: ok" || echo "token format: UNEXPECTED (quotes/whitespace?)"
+          echo "chat_id length: ${#C}"
+          [[ "$C" =~ ^-?[0-9]+$ ]] && echo "chat_id format: numeric ok" || echo "chat_id format: NON-NUMERIC (quotes/whitespace?)"
+          echo "--- getMe:"
+          curl -sS "https://api.telegram.org/bot${T}/getMe" | jq '{ok, error_code, description}'
+          echo "--- sendMessage:"
+          curl -sS -X POST "https://api.telegram.org/bot${T}/sendMessage" \
+            --data-urlencode "chat_id=${C}" \
+            --data-urlencode "text=bridge_tracker debug ping" | jq '{ok, error_code, description}'
