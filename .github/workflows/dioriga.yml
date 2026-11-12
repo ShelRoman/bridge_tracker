@@ -11,8 +11,6 @@
 name: dioriga-bridge-status
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch: # manual "run now" button
   push:
     branches:
